@@ -33,5 +33,3 @@
 * As a student, I want to track completed tasks so that I can monitor my productivity.
 * As a student, I want to view my study progress so that I can evaluate my academic performance.
 
-```
-```
