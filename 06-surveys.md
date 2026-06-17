@@ -16,7 +16,8 @@ The survey was conducted using Google Forms and distributed to university studen
 5. How often do you miss assignments or project deadlines?
 6. What is your biggest challenge in managing your academic workload?
 7. Would you use a Study Planner application designed specifically for students?
-8. Which features would you find most useful?  
+8. Which features would you find most useful?
+9. How important are reminders and notifications for academic tasks?  
 ## Survey Findings
 <br>
 <ins><b> Figure 1 </b></ins>
