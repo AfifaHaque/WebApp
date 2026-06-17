@@ -65,6 +65,3 @@
 * Completed tasks are counted correctly.
 * Progress statistics are updated automatically.
 * User can view progress information from the dashboard.
-
-```
-```
