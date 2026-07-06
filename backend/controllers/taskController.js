@@ -37,14 +37,57 @@ const createTask = async (req, res) => {
   }
 };
 
-// Get all tasks of logged-in user
+// Get all tasks of logged-in user with search and filters
 const getTasks = async (req, res) => {
   try {
-    const tasks = await Task.find({ user_id: req.user._id }).sort({
-      deadline: 1,
-    });
+    const { search, course_name, task_type, priority, status, deadline } =
+      req.query;
 
-    res.json(tasks);
+    const filter = {
+      user_id: req.user._id,
+    };
+
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+        { course_name: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    if (course_name) {
+      filter.course_name = { $regex: course_name, $options: "i" };
+    }
+
+    if (task_type) {
+      filter.task_type = task_type;
+    }
+
+    if (priority) {
+      filter.priority = priority;
+    }
+
+    if (status) {
+      filter.status = status;
+    }
+
+    if (deadline) {
+      const startDate = new Date(deadline);
+      const endDate = new Date(deadline);
+      endDate.setDate(endDate.getDate() + 1);
+
+      filter.deadline = {
+        $gte: startDate,
+        $lt: endDate,
+      };
+    }
+
+    const tasks = await Task.find(filter).sort({ deadline: 1 });
+
+    res.json({
+      count: tasks.length,
+      tasks,
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
