@@ -15,6 +15,8 @@ app.use("/api/auth", require("./routes/authRoutes"));
 
 app.use("/api/tasks", require("./routes/taskRoutes"));
 
+app.use("/api/admin", require("./routes/adminRoutes"));
+
 app.get("/", (req, res) => {
   res.send("Student Study Planner API is running");
 });
