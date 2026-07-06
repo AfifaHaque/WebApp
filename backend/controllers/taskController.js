@@ -179,6 +179,49 @@ const completeTask = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+// Get dashboard summary for logged-in user
+const getDashboardSummary = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const totalTasks = await Task.countDocuments({ user_id: userId });
+    const pendingTasks = await Task.countDocuments({
+      user_id: userId,
+      status: "Pending",
+    });
+    const inProgressTasks = await Task.countDocuments({
+      user_id: userId,
+      status: "In Progress",
+    });
+    const completedTasks = await Task.countDocuments({
+      user_id: userId,
+      status: "Completed",
+    });
+
+    const today = new Date();
+    const upcomingDeadlines = await Task.find({
+      user_id: userId,
+      deadline: { $gte: today },
+      status: { $ne: "Completed" },
+    })
+      .sort({ deadline: 1 })
+      .limit(5);
+
+    const progressPercentage =
+      totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+
+    res.json({
+      totalTasks,
+      pendingTasks,
+      inProgressTasks,
+      completedTasks,
+      progressPercentage,
+      upcomingDeadlines,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 
 module.exports = {
   createTask,
@@ -187,4 +230,5 @@ module.exports = {
   updateTask,
   deleteTask,
   completeTask,
+  getDashboardSummary,
 };

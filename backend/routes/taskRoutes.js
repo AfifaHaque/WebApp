@@ -8,12 +8,14 @@ const {
   updateTask,
   deleteTask,
   completeTask,
+  getDashboardSummary,
 } = require("../controllers/taskController");
 
 const { protect } = require("../middleware/authMiddleware");
 
 router.post("/", protect, createTask);
 router.get("/", protect, getTasks);
+router.get("/summary", protect, getDashboardSummary);
 router.get("/:id", protect, getTaskById);
 router.put("/:id", protect, updateTask);
 router.delete("/:id", protect, deleteTask);
