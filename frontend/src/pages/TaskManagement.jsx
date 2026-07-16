@@ -1,40 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
 function TaskManagement() {
-  const [tasks, setTasks] = useState([
-    {
-      id: 1,
-      title: "Numerical Methods Assignment",
-      course_name: "Numerical Methods",
-      task_type: "Assignment",
-      deadline: "2026-07-10",
-      priority: "High",
-      status: "Pending",
-    },
-    {
-      id: 2,
-      title: "WebApp Project Report",
-      course_name: "Web Application",
-      task_type: "Project",
-      deadline: "2026-07-15",
-      priority: "Medium",
-      status: "In Progress",
-    },
-    {
-      id: 3,
-      title: "Database Quiz Preparation",
-      course_name: "Database Management",
-      task_type: "Quiz",
-      deadline: "2026-07-20",
-      priority: "Low",
-      status: "Completed",
-    },
-  ]);
+  const API_URL = "http://localhost:5000/api/tasks";
+
+  const [tasks, setTasks] = useState([]);
 
   const [formData, setFormData] = useState({
     title: "",
     course_name: "",
     task_type: "Assignment",
+    description: "",
     deadline: "",
     priority: "Medium",
     status: "Pending",
@@ -44,6 +20,47 @@ function TaskManagement() {
   const [statusFilter, setStatusFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
 
+  const token = localStorage.getItem("token");
+
+  const getAuthHeader = () => {
+    return {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+  };
+
+  const fetchTasks = async () => {
+    try {
+      let query = [];
+
+      if (search) {
+        query.push(`search=${search}`);
+      }
+
+      if (statusFilter) {
+        query.push(`status=${statusFilter}`);
+      }
+
+      if (priorityFilter) {
+        query.push(`priority=${priorityFilter}`);
+      }
+
+      const queryString = query.length > 0 ? `?${query.join("&")}` : "";
+
+      const response = await axios.get(`${API_URL}${queryString}`, getAuthHeader());
+
+      setTasks(response.data.tasks);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to load tasks. Please login first.");
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, [search, statusFilter, priorityFilter]);
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -51,7 +68,7 @@ function TaskManagement() {
     });
   };
 
-  const handleAddTask = (e) => {
+  const handleAddTask = async (e) => {
     e.preventDefault();
 
     if (!formData.title || !formData.course_name || !formData.deadline) {
@@ -59,48 +76,45 @@ function TaskManagement() {
       return;
     }
 
-    const newTask = {
-      id: Date.now(),
-      ...formData,
-    };
+    try {
+      await axios.post(API_URL, formData, getAuthHeader());
 
-    setTasks([newTask, ...tasks]);
+      setFormData({
+        title: "",
+        course_name: "",
+        task_type: "Assignment",
+        description: "",
+        deadline: "",
+        priority: "Medium",
+        status: "Pending",
+      });
 
-    setFormData({
-      title: "",
-      course_name: "",
-      task_type: "Assignment",
-      deadline: "",
-      priority: "Medium",
-      status: "Pending",
-    });
+      fetchTasks();
+    } catch (error) {
+      console.error(error);
+      alert("Failed to add task.");
+    }
   };
 
-  const handleCompleteTask = (id) => {
-    const updatedTasks = tasks.map((task) =>
-      task.id === id ? { ...task, status: "Completed" } : task
-    );
-
-    setTasks(updatedTasks);
+  const handleCompleteTask = async (id) => {
+    try {
+      await axios.patch(`${API_URL}/${id}/complete`, {}, getAuthHeader());
+      fetchTasks();
+    } catch (error) {
+      console.error(error);
+      alert("Failed to complete task.");
+    }
   };
 
-  const handleDeleteTask = (id) => {
-    const filteredTasks = tasks.filter((task) => task.id !== id);
-    setTasks(filteredTasks);
+  const handleDeleteTask = async (id) => {
+    try {
+      await axios.delete(`${API_URL}/${id}`, getAuthHeader());
+      fetchTasks();
+    } catch (error) {
+      console.error(error);
+      alert("Failed to delete task.");
+    }
   };
-
-  const filteredTasks = tasks.filter((task) => {
-    const matchesSearch =
-      task.title.toLowerCase().includes(search.toLowerCase()) ||
-      task.course_name.toLowerCase().includes(search.toLowerCase());
-
-    const matchesStatus = statusFilter ? task.status === statusFilter : true;
-    const matchesPriority = priorityFilter
-      ? task.priority === priorityFilter
-      : true;
-
-    return matchesSearch && matchesStatus && matchesPriority;
-  });
 
   return (
     <div className="page">
@@ -143,6 +157,14 @@ function TaskManagement() {
             <option>Reading</option>
             <option>Revision</option>
           </select>
+
+          <input
+            type="text"
+            name="description"
+            placeholder="Task description"
+            value={formData.description}
+            onChange={handleChange}
+          />
 
           <input
             type="date"
@@ -202,36 +224,41 @@ function TaskManagement() {
         </div>
 
         <div className="task-list">
-          {filteredTasks.map((task) => (
-            <div className="task-item" key={task.id}>
-              <div>
-                <h3>{task.title}</h3>
-                <p>{task.course_name}</p>
-                <small>
-                  {task.task_type} | Deadline: {task.deadline}
-                </small>
+          {tasks.length === 0 ? (
+            <p>No tasks found.</p>
+          ) : (
+            tasks.map((task) => (
+              <div className="task-item" key={task._id}>
+                <div>
+                  <h3>{task.title}</h3>
+                  <p>{task.course_name}</p>
+                  <small>
+                    {task.task_type} | Deadline:{" "}
+                    {task.deadline ? task.deadline.slice(0, 10) : "No date"}
+                  </small>
+                </div>
+
+                <div className="task-meta">
+                  <span className={`badge ${task.priority.toLowerCase()}`}>
+                    {task.priority}
+                  </span>
+
+                  <span className="status-badge">{task.status}</span>
+
+                  <button onClick={() => handleCompleteTask(task._id)}>
+                    Complete
+                  </button>
+
+                  <button
+                    className="delete-btn"
+                    onClick={() => handleDeleteTask(task._id)}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
-
-              <div className="task-meta">
-                <span className={`badge ${task.priority.toLowerCase()}`}>
-                  {task.priority}
-                </span>
-
-                <span className="status-badge">{task.status}</span>
-
-                <button onClick={() => handleCompleteTask(task.id)}>
-                  Complete
-                </button>
-
-                <button
-                  className="delete-btn"
-                  onClick={() => handleDeleteTask(task.id)}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </section>
     </div>
