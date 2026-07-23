@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 function TaskManagement() {
-  const API_URL = "http://localhost:5000/api/tasks";
+  const API_URL = "https://webapp-backend-rvdb.onrender.com/api/tasks";
 
   const [tasks, setTasks] = useState([]);
 
