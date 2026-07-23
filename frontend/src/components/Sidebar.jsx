@@ -7,6 +7,7 @@ function Sidebar() {
 
       <nav className="sidebar-menu">
         <Link to="/">Home</Link>
+        <Link to="/login">Login</Link>
         <Link to="/tasks">Tasks</Link>
         <Link to="/study-schedule">Study Schedule</Link>
         <Link to="/calendar">Calendar</Link>
