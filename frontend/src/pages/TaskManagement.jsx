@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
 const API_URL =
-  "https://YOUR-RENDER-URL.onrender.com/api/tasks";
+  "https://student-study-planner-fastapi.onrender.com/api/tasks";
 
 function TaskManagement() {
   const [tasks, setTasks] = useState([]);
