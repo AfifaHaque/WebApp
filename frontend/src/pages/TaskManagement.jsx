@@ -1,28 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
-function TaskManagement() {
-  const API_URL = "https://webapp-backend-rvdb.onrender.com/api/tasks";
+const API_URL = "http://127.0.0.1:8000/api/tasks";
 
+function TaskManagement() {
   const [tasks, setTasks] = useState([]);
 
   const [formData, setFormData] = useState({
     title: "",
-    course_name: "",
-    task_type: "Assignment",
     description: "",
-    deadline: "",
-    priority: "Medium",
-    status: "Pending",
+    dueDate: "",
+    priority: "medium",
+    status: "pending",
+    tags: "",
   });
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
 
-  const token = localStorage.getItem("token");
-
   const getAuthHeader = () => {
+    const token = localStorage.getItem("token");
+
     return {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -32,89 +31,129 @@ function TaskManagement() {
 
   const fetchTasks = async () => {
     try {
-      let query = [];
+      const response = await axios.get(API_URL, getAuthHeader());
 
-      if (search) {
-        query.push(`search=${search}`);
-      }
-
-      if (statusFilter) {
-        query.push(`status=${statusFilter}`);
-      }
-
-      if (priorityFilter) {
-        query.push(`priority=${priorityFilter}`);
-      }
-
-      const queryString = query.length > 0 ? `?${query.join("&")}` : "";
-
-      const response = await axios.get(`${API_URL}${queryString}`, getAuthHeader());
-
-      setTasks(response.data.tasks);
+      // FastAPI returns the task array directly
+      setTasks(response.data);
     } catch (error) {
-      console.error(error);
-      alert("Failed to load tasks. Please login first.");
+      console.error("Load tasks error:", error);
+
+      if (error.response?.status === 401) {
+        alert("Your login token is missing or expired. Please log in again.");
+      } else {
+        alert("Failed to load tasks.");
+      }
     }
   };
 
   useEffect(() => {
     fetchTasks();
-  }, [search, statusFilter, priorityFilter]);
+  }, []);
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    setFormData((previousData) => ({
+      ...previousData,
+      [name]: value,
+    }));
   };
 
-  const handleAddTask = async (e) => {
-    e.preventDefault();
+  const handleAddTask = async (event) => {
+    event.preventDefault();
 
-    if (!formData.title || !formData.course_name || !formData.deadline) {
-      alert("Please fill in title, course name, and deadline.");
+    if (!formData.title || !formData.dueDate) {
+      alert("Please enter the task title and due date.");
       return;
     }
 
+    const taskData = {
+      title: formData.title,
+      description: formData.description,
+      dueDate: formData.dueDate,
+      priority: formData.priority,
+      status: formData.status,
+      tags: formData.tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    };
+
     try {
-      await axios.post(API_URL, formData, getAuthHeader());
+      await axios.post(API_URL, taskData, getAuthHeader());
 
       setFormData({
         title: "",
-        course_name: "",
-        task_type: "Assignment",
         description: "",
-        deadline: "",
-        priority: "Medium",
-        status: "Pending",
+        dueDate: "",
+        priority: "medium",
+        status: "pending",
+        tags: "",
       });
 
-      fetchTasks();
+      await fetchTasks();
     } catch (error) {
-      console.error(error);
-      alert("Failed to add task.");
+      console.error("Add task error:", error);
+
+      if (error.response?.status === 401) {
+        alert("Your login token is missing or expired.");
+      } else {
+        alert("Failed to add task.");
+      }
     }
   };
 
-  const handleCompleteTask = async (id) => {
+  const handleCompleteTask = async (taskId) => {
     try {
-      await axios.patch(`${API_URL}/${id}/complete`, {}, getAuthHeader());
-      fetchTasks();
+      await axios.patch(
+        `${API_URL}/${taskId}/complete`,
+        {},
+        getAuthHeader()
+      );
+
+      await fetchTasks();
     } catch (error) {
-      console.error(error);
+      console.error("Complete task error:", error);
       alert("Failed to complete task.");
     }
   };
 
-  const handleDeleteTask = async (id) => {
+  const handleDeleteTask = async (taskId) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this task?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     try {
-      await axios.delete(`${API_URL}/${id}`, getAuthHeader());
-      fetchTasks();
+      await axios.delete(`${API_URL}/${taskId}`, getAuthHeader());
+      await fetchTasks();
     } catch (error) {
-      console.error(error);
+      console.error("Delete task error:", error);
       alert("Failed to delete task.");
     }
   };
+
+  // Search and filtering are performed in React
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      const searchText = search.toLowerCase();
+
+      const matchesSearch =
+        task.title?.toLowerCase().includes(searchText) ||
+        task.description?.toLowerCase().includes(searchText);
+
+      const matchesStatus =
+        !statusFilter || task.status === statusFilter;
+
+      const matchesPriority =
+        !priorityFilter || task.priority === priorityFilter;
+
+      return matchesSearch && matchesStatus && matchesPriority;
+    });
+  }, [tasks, search, statusFilter, priorityFilter]);
 
   return (
     <div className="page">
@@ -139,27 +178,6 @@ function TaskManagement() {
 
           <input
             type="text"
-            name="course_name"
-            placeholder="Course name"
-            value={formData.course_name}
-            onChange={handleChange}
-          />
-
-          <select
-            name="task_type"
-            value={formData.task_type}
-            onChange={handleChange}
-          >
-            <option>Assignment</option>
-            <option>Quiz</option>
-            <option>Exam</option>
-            <option>Project</option>
-            <option>Reading</option>
-            <option>Revision</option>
-          </select>
-
-          <input
-            type="text"
             name="description"
             placeholder="Task description"
             value={formData.description}
@@ -168,8 +186,8 @@ function TaskManagement() {
 
           <input
             type="date"
-            name="deadline"
-            value={formData.deadline}
+            name="dueDate"
+            value={formData.dueDate}
             onChange={handleChange}
           />
 
@@ -178,16 +196,28 @@ function TaskManagement() {
             value={formData.priority}
             onChange={handleChange}
           >
-            <option>Low</option>
-            <option>Medium</option>
-            <option>High</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
           </select>
 
-          <select name="status" value={formData.status} onChange={handleChange}>
-            <option>Pending</option>
-            <option>In Progress</option>
-            <option>Completed</option>
+          <select
+            name="status"
+            value={formData.status}
+            onChange={handleChange}
+          >
+            <option value="pending">Pending</option>
+            <option value="in progress">In Progress</option>
+            <option value="completed">Completed</option>
           </select>
+
+          <input
+            type="text"
+            name="tags"
+            placeholder="Tags separated by commas"
+            value={formData.tags}
+            onChange={handleChange}
+          />
 
           <button type="submit">Add Task</button>
         </form>
@@ -197,61 +227,79 @@ function TaskManagement() {
         <div className="filter-row">
           <input
             type="text"
-            placeholder="Search by task or course"
+            placeholder="Search by title or description"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(event) => setSearch(event.target.value)}
           />
 
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(event) => setStatusFilter(event.target.value)}
           >
             <option value="">All Status</option>
-            <option>Pending</option>
-            <option>In Progress</option>
-            <option>Completed</option>
+            <option value="pending">Pending</option>
+            <option value="in progress">In Progress</option>
+            <option value="completed">Completed</option>
           </select>
 
           <select
             value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
+            onChange={(event) => setPriorityFilter(event.target.value)}
           >
             <option value="">All Priority</option>
-            <option>Low</option>
-            <option>Medium</option>
-            <option>High</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
           </select>
         </div>
 
         <div className="task-list">
-          {tasks.length === 0 ? (
+          {filteredTasks.length === 0 ? (
             <p>No tasks found.</p>
           ) : (
-            tasks.map((task) => (
-              <div className="task-item" key={task._id}>
+            filteredTasks.map((task) => (
+              <div className="task-item" key={task._id || task.id}>
                 <div>
                   <h3>{task.title}</h3>
-                  <p>{task.course_name}</p>
+
+                  <p>{task.description || "No description"}</p>
+
                   <small>
-                    {task.task_type} | Deadline:{" "}
-                    {task.deadline ? task.deadline.slice(0, 10) : "No date"}
+                    Due date: {task.dueDate || "No date"}
                   </small>
+
+                  {task.tags?.length > 0 && (
+                    <small>
+                      {" "}
+                      | Tags: {task.tags.join(", ")}
+                    </small>
+                  )}
                 </div>
 
                 <div className="task-meta">
-                  <span className={`badge ${task.priority.toLowerCase()}`}>
+                  <span className={`badge ${task.priority}`}>
                     {task.priority}
                   </span>
 
-                  <span className="status-badge">{task.status}</span>
+                  <span className="status-badge">
+                    {task.status}
+                  </span>
 
-                  <button onClick={() => handleCompleteTask(task._id)}>
-                    Complete
-                  </button>
+                  {task.status !== "completed" && (
+                    <button
+                      onClick={() =>
+                        handleCompleteTask(task._id || task.id)
+                      }
+                    >
+                      Complete
+                    </button>
+                  )}
 
                   <button
                     className="delete-btn"
-                    onClick={() => handleDeleteTask(task._id)}
+                    onClick={() =>
+                      handleDeleteTask(task._id || task.id)
+                    }
                   >
                     Delete
                   </button>
