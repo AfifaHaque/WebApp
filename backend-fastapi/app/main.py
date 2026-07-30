@@ -5,18 +5,14 @@ from app.database import check_database_connection
 from app.routes.task_routes import router as task_router
 from app.routes.auth_routes import router as auth_router
 
-app = FastAPI(
-    title="Student Study Planner API",
-    description="FastAPI backend for the Student Study Planner",
-    version="1.0.0",
-)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",
         "http://localhost:5173",
-        "https://student-study-planner-phi.vercel.app",
+        "https://web-app-omega-opal.vercel.app",
+        "https://web-app-git-main-webapp18.vercel.app",
     ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
