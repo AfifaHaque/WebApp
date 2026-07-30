@@ -22,3 +22,22 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# FastAPI
+backend-fastapi/venv/
+backend-fastapi/.env
+**/__pycache__/
+*.pyc
+
+# React
+frontend/node_modules/
+frontend/build/
+frontend/.env
+frontend/.env.local
+
+# Express backup
+backend-express/node_modules/
+backend-express/.env
+
+# General
+.DS_Store
+Thumbs.db
