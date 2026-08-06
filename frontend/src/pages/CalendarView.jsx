@@ -1,129 +1,103 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import axios from "axios";
+
+const API_URL = "http://127.0.0.1:8000/api/tasks";
 
 function CalendarView() {
-  const [selectedDate, setSelectedDate] = useState("2026-07-10");
+  const [tasks, setTasks] = useState([]);
+  const [selectedDate, setSelectedDate] = useState("");
 
-  const tasks = [
-    {
-      id: 1,
-      title: "Numerical Methods Assignment",
-      date: "2026-07-10",
-      priority: "High",
-    },
-    {
-      id: 2,
-      title: "WebApp Project Report",
-      date: "2026-07-15",
-      priority: "Medium",
-    },
-    {
-      id: 3,
-      title: "Database Quiz Preparation",
-      date: "2026-07-20",
-      priority: "Low",
-    },
-  ];
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        const token = localStorage.getItem("token");
 
-  const calendarDays = [
-    "", "", "", 1, 2, 3, 4,
-    5, 6, 7, 8, 9, 10, 11,
-    12, 13, 14, 15, 16, 17, 18,
-    19, 20, 21, 22, 23, 24, 25,
-    26, 27, 28, 29, 30, 31, "",
-  ];
+        const response = await axios.get(API_URL, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-  const hasTask = (day) => {
-    const dayString = day.toString().padStart(2, "0");
-    return tasks.some((task) => task.date === `2026-07-${dayString}`);
-  };
+        setTasks(Array.isArray(response.data) ? response.data : []);
+      } catch (error) {
+        console.error("Calendar load error:", error);
+        setTasks([]);
+      }
+    };
 
-  const handleDateClick = (day) => {
-    if (!day) return;
+    loadTasks();
+  }, []);
 
-    const dayString = day.toString().padStart(2, "0");
-    setSelectedDate(`2026-07-${dayString}`);
-  };
+  const tasksForSelectedDate = useMemo(() => {
+    if (!selectedDate) {
+      return tasks;
+    }
 
-  const selectedTasks = tasks.filter((task) => task.date === selectedDate);
+    return tasks.filter(
+      (task) => task.dueDate === selectedDate
+    );
+  }, [tasks, selectedDate]);
 
   return (
     <div className="page">
       <div className="page-header">
         <div>
-          <h2>Calendar View</h2>
-          <p>View your academic tasks and deadlines in a monthly calendar.</p>
+          <h2>Calendar</h2>
+          <p>View your task deadlines by date.</p>
         </div>
       </div>
 
-      <section className="calendar-layout">
-        <div className="content-card">
-          <div className="calendar-header">
-            <h3>July 2026</h3>
-            <p>Click a date to view related tasks.</p>
-          </div>
+      <section className="content-card">
+        <h3>Select a Date</h3>
 
-          <div className="calendar-weekdays">
-            <span>Sun</span>
-            <span>Mon</span>
-            <span>Tue</span>
-            <span>Wed</span>
-            <span>Thu</span>
-            <span>Fri</span>
-            <span>Sat</span>
-          </div>
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(event) =>
+            setSelectedDate(event.target.value)
+          }
+        />
 
-          <div className="calendar-grid">
-            {calendarDays.map((day, index) => (
-              <button
-                key={index}
-                className={`calendar-day ${
-                  day && hasTask(day) ? "has-task" : ""
-                } ${
-                  day &&
-                  selectedDate ===
-                    `2026-07-${day.toString().padStart(2, "0")}`
-                    ? "selected-day"
-                    : ""
-                }`}
-                onClick={() => handleDateClick(day)}
-              >
-                {day}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="content-card">
-          <h3>Tasks on {selectedDate}</h3>
-
-          {selectedTasks.length > 0 ? (
-            <div className="calendar-task-list">
-              {selectedTasks.map((task) => (
-                <div className="calendar-task" key={task.id}>
-                  <h4>{task.title}</h4>
-                  <p>Priority: {task.priority}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="empty-text">No tasks found for this date.</p>
-          )}
-        </div>
+        {selectedDate && (
+          <button onClick={() => setSelectedDate("")}>
+            Show All
+          </button>
+        )}
       </section>
 
       <section className="content-card">
-        <h3>Deadline Overview</h3>
+        <h3>
+          {selectedDate
+            ? `Tasks for ${selectedDate}`
+            : "All Upcoming Deadlines"}
+        </h3>
 
-        <div className="calendar-task-list">
-          {tasks.map((task) => (
-            <div className="calendar-task" key={task.id}>
-              <h4>{task.title}</h4>
-              <p>
-                Date: {task.date} | Priority: {task.priority}
-              </p>
-            </div>
-          ))}
-        </div>
+        {tasksForSelectedDate.length === 0 ? (
+          <p>No tasks found for this date.</p>
+        ) : (
+          <div className="task-list">
+            {tasksForSelectedDate.map((task) => (
+              <div
+                className="task-item"
+                key={task._id || task.id}
+              >
+                <div>
+                  <h3>{task.title}</h3>
+                  <p>{task.description || "No description"}</p>
+
+                  <small>
+                    Date: {task.dueDate || "No date"} | Priority:{" "}
+                    {task.priority || "medium"}
+                  </small>
+                </div>
+
+                <span className="status-badge">
+                  {task.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

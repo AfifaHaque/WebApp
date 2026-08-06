@@ -1,42 +1,29 @@
 import { useState } from "react";
 
 function FileManager() {
-  const [materials, setMaterials] = useState([
-    {
-      id: 1,
-      title: "Numerical Methods Notes",
-      course_name: "Numerical Methods",
-      description: "Notes for bisection, false position, and Newton-Raphson.",
-      file_link: "https://example.com/numerical-notes",
-    },
-    {
-      id: 2,
-      title: "WebApp Project Documentation",
-      course_name: "Web Application",
-      description: "Backend API design and ERD documentation.",
-      file_link: "https://example.com/webapp-docs",
-    },
-  ]);
+  const [materials, setMaterials] = useState([]);
 
   const [formData, setFormData] = useState({
     title: "",
-    course_name: "",
+    course: "",
+    url: "",
     description: "",
-    file_link: "",
   });
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    setFormData((previousData) => ({
+      ...previousData,
+      [name]: value,
+    }));
   };
 
-  const handleAddMaterial = (e) => {
-    e.preventDefault();
+  const handleAddMaterial = (event) => {
+    event.preventDefault();
 
-    if (!formData.title || !formData.course_name || !formData.file_link) {
-      alert("Please fill in title, course name, and file/link.");
+    if (!formData.title || !formData.course) {
+      alert("Please enter the title and course name.");
       return;
     }
 
@@ -45,19 +32,25 @@ function FileManager() {
       ...formData,
     };
 
-    setMaterials([newMaterial, ...materials]);
+    setMaterials((previousMaterials) => [
+      ...previousMaterials,
+      newMaterial,
+    ]);
 
     setFormData({
       title: "",
-      course_name: "",
+      course: "",
+      url: "",
       description: "",
-      file_link: "",
     });
   };
 
-  const handleDeleteMaterial = (id) => {
-    const filteredMaterials = materials.filter((material) => material.id !== id);
-    setMaterials(filteredMaterials);
+  const handleDeleteMaterial = (materialId) => {
+    setMaterials((previousMaterials) =>
+      previousMaterials.filter(
+        (material) => material.id !== materialId
+      )
+    );
   };
 
   return (
@@ -65,14 +58,19 @@ function FileManager() {
       <div className="page-header">
         <div>
           <h2>File Manager</h2>
-          <p>Organize study materials, notes, links, and course resources.</p>
+          <p>
+            Organize study materials, notes, links, and resources.
+          </p>
         </div>
       </div>
 
       <section className="content-card">
         <h3>Add Study Material</h3>
 
-        <form className="file-form" onSubmit={handleAddMaterial}>
+        <form
+          className="task-form"
+          onSubmit={handleAddMaterial}
+        >
           <input
             type="text"
             name="title"
@@ -83,17 +81,17 @@ function FileManager() {
 
           <input
             type="text"
-            name="course_name"
+            name="course"
             placeholder="Course name"
-            value={formData.course_name}
+            value={formData.course}
             onChange={handleChange}
           />
 
           <input
-            type="text"
-            name="file_link"
+            type="url"
+            name="url"
             placeholder="File link or resource URL"
-            value={formData.file_link}
+            value={formData.url}
             onChange={handleChange}
           />
 
@@ -102,7 +100,7 @@ function FileManager() {
             placeholder="Material description"
             value={formData.description}
             onChange={handleChange}
-          ></textarea>
+          />
 
           <button type="submit">Add Material</button>
         </form>
@@ -111,29 +109,48 @@ function FileManager() {
       <section className="content-card">
         <h3>Study Materials</h3>
 
-        <div className="material-list">
-          {materials.map((material) => (
-            <div className="material-card" key={material.id}>
-              <div>
-                <h3>{material.title}</h3>
-                <p>{material.course_name}</p>
-                <small>{material.description}</small>
+        {materials.length === 0 ? (
+          <p>No study materials added yet.</p>
+        ) : (
+          <div className="task-list">
+            {materials.map((material) => (
+              <div
+                className="task-item"
+                key={material.id}
+              >
+                <div>
+                  <h3>{material.title}</h3>
+                  <p>{material.course}</p>
 
-                <a
-                  href={material.file_link}
-                  target="_blank"
-                  rel="noreferrer"
+                  {material.description && (
+                    <small>{material.description}</small>
+                  )}
+
+                  {material.url && (
+                    <p>
+                      <a
+                        href={material.url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Open Resource
+                      </a>
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  className="delete-btn"
+                  onClick={() =>
+                    handleDeleteMaterial(material.id)
+                  }
                 >
-                  Open Resource
-                </a>
+                  Delete
+                </button>
               </div>
-
-              <button onClick={() => handleDeleteMaterial(material.id)}>
-                Delete
-              </button>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

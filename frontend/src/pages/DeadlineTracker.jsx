@@ -1,132 +1,169 @@
+import { useEffect, useMemo, useState } from "react";
+import axios from "axios";
+
+const API_URL = "http://127.0.0.1:8000/api/tasks";
+
 function DeadlineTracker() {
-  const deadlines = [
-    {
-      id: 1,
-      title: "Numerical Methods Assignment",
-      course_name: "Numerical Methods",
-      deadline: "2026-07-10",
-      priority: "High",
-      status: "Pending",
-      days_left: 3,
-    },
-    {
-      id: 2,
-      title: "WebApp Project Report",
-      course_name: "Web Application",
-      deadline: "2026-07-15",
-      priority: "Medium",
-      status: "In Progress",
-      days_left: 8,
-    },
-    {
-      id: 3,
-      title: "Database Quiz Preparation",
-      course_name: "Database Management",
-      deadline: "2026-07-20",
-      priority: "Low",
-      status: "Completed",
-      days_left: 13,
-    },
-    {
-      id: 4,
-      title: "Old DLD Lab Report",
-      course_name: "Digital Logic Design",
-      deadline: "2026-07-01",
-      priority: "High",
-      status: "Overdue",
-      days_left: -6,
-    },
-  ];
+  const [tasks, setTasks] = useState([]);
 
-  const upcomingDeadlines = deadlines.filter(
-    (deadline) => deadline.days_left >= 0 && deadline.status !== "Completed"
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        const token = localStorage.getItem("token");
+
+        const response = await axios.get(API_URL, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        setTasks(Array.isArray(response.data) ? response.data : []);
+      } catch (error) {
+        console.error("Deadline load error:", error);
+        setTasks([]);
+      }
+    };
+
+    loadTasks();
+  }, []);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const upcomingTasks = useMemo(
+    () =>
+      tasks.filter((task) => {
+        if (!task.dueDate || task.status === "completed") {
+          return false;
+        }
+
+        return new Date(task.dueDate) >= today;
+      }),
+    [tasks]
   );
 
-  const overdueDeadlines = deadlines.filter(
-    (deadline) => deadline.days_left < 0 || deadline.status === "Overdue"
+  const overdueTasks = useMemo(
+    () =>
+      tasks.filter((task) => {
+        if (!task.dueDate || task.status === "completed") {
+          return false;
+        }
+
+        return new Date(task.dueDate) < today;
+      }),
+    [tasks]
   );
+
+  const completedTasks = tasks.filter(
+    (task) => task.status === "completed"
+  );
+
+  const calculateDays = (dueDate) => {
+    const difference =
+      new Date(dueDate).getTime() - today.getTime();
+
+    return Math.ceil(difference / (1000 * 60 * 60 * 24));
+  };
 
   return (
     <div className="page">
       <div className="page-header">
         <div>
           <h2>Deadline Tracker</h2>
-          <p>Track upcoming, completed, and overdue academic deadlines.</p>
+          <p>Track upcoming, completed, and overdue tasks.</p>
         </div>
       </div>
 
-      <section className="stats-grid">
+      <section className="dashboard-grid">
         <div className="stat-card">
           <h3>Total Deadlines</h3>
-          <p>{deadlines.length}</p>
+          <p>{tasks.length}</p>
         </div>
 
         <div className="stat-card">
           <h3>Upcoming</h3>
-          <p>{upcomingDeadlines.length}</p>
+          <p>{upcomingTasks.length}</p>
         </div>
 
         <div className="stat-card">
           <h3>Overdue</h3>
-          <p>{overdueDeadlines.length}</p>
+          <p>{overdueTasks.length}</p>
         </div>
 
         <div className="stat-card">
           <h3>Completed</h3>
-          <p>{deadlines.filter((item) => item.status === "Completed").length}</p>
+          <p>{completedTasks.length}</p>
         </div>
       </section>
 
       <section className="content-card">
         <h3>Upcoming Deadlines</h3>
 
-        <div className="deadline-tracker-list">
-          {upcomingDeadlines.map((item) => (
-            <div className="deadline-card" key={item.id}>
-              <div>
-                <h3>{item.title}</h3>
-                <p>{item.course_name}</p>
-                <small>Deadline: {item.deadline}</small>
-              </div>
+        {upcomingTasks.length === 0 ? (
+          <p>No upcoming deadlines.</p>
+        ) : (
+          <div className="task-list">
+            {upcomingTasks.map((task) => {
+              const daysLeft = calculateDays(task.dueDate);
 
-              <div className="deadline-info">
-                <span className={`badge ${item.priority.toLowerCase()}`}>
-                  {item.priority}
-                </span>
+              return (
+                <div
+                  className="task-item"
+                  key={task._id || task.id}
+                >
+                  <div>
+                    <h3>{task.title}</h3>
+                    <p>{task.description || "No description"}</p>
+                    <small>Deadline: {task.dueDate}</small>
+                  </div>
 
-                <span className="status-badge">{item.status}</span>
+                  <div className="task-meta">
+                    <span className={`badge ${task.priority}`}>
+                      {task.priority}
+                    </span>
 
-                <strong>{item.days_left} days left</strong>
-              </div>
-            </div>
-          ))}
-        </div>
+                    <span className="status-badge">
+                      {task.status}
+                    </span>
+
+                    <strong>
+                      {daysLeft === 0
+                        ? "Due today"
+                        : `${daysLeft} days left`}
+                    </strong>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       <section className="content-card">
         <h3>Overdue Deadlines</h3>
 
-        <div className="deadline-tracker-list">
-          {overdueDeadlines.map((item) => (
-            <div className="deadline-card overdue-card" key={item.id}>
-              <div>
-                <h3>{item.title}</h3>
-                <p>{item.course_name}</p>
-                <small>Deadline: {item.deadline}</small>
+        {overdueTasks.length === 0 ? (
+          <p>No overdue deadlines.</p>
+        ) : (
+          <div className="task-list">
+            {overdueTasks.map((task) => (
+              <div
+                className="task-item"
+                key={task._id || task.id}
+              >
+                <div>
+                  <h3>{task.title}</h3>
+                  <p>{task.description || "No description"}</p>
+                  <small>Deadline: {task.dueDate}</small>
+                </div>
+
+                <strong>
+                  {Math.abs(calculateDays(task.dueDate))} days late
+                </strong>
               </div>
-
-              <div className="deadline-info">
-                <span className={`badge ${item.priority.toLowerCase()}`}>
-                  {item.priority}
-                </span>
-
-                <span className="overdue-badge">Overdue</span>
-
-                <strong>{Math.abs(item.days_left)} days late</strong>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
