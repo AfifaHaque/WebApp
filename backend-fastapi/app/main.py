@@ -1,13 +1,15 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import check_database_connection
 from app.routes.auth_routes import router as auth_router
 from app.routes.task_routes import router as task_router
-
+from app.routes.schedule_routes import router as schedule_router
+from app.routes.material_routes import router as material_router
 
 app = FastAPI(
     title="Student Study Planner API",
+    description="FastAPI backend for Student Study Planner",
     version="1.0.0",
 )
 
@@ -17,8 +19,9 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
     ],
-    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -27,6 +30,8 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(task_router)
+app.include_router(schedule_router)
+app.include_router(material_router)
 
 
 @app.get("/")
@@ -38,4 +43,13 @@ def home():
 
 @app.get("/api/database-status")
 def database_status():
-    return check_database_connection()
+    if not check_database_connection():
+        raise HTTPException(
+            status_code=500,
+            detail="Could not connect to MongoDB",
+        )
+
+    return {
+        "status": "connected",
+        "database": "student_study_planner",
+    }

@@ -5,9 +5,12 @@ import {
   useState,
 } from "react";
 
-import api from "../services/api";
+import axios from "axios";
 
 const AuthContext = createContext(null);
+
+const API_BASE_URL =
+  `${import.meta.env.VITE_API_URL}/api`;
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -39,19 +42,30 @@ export function AuthProvider({ children }) {
   }, []);
 
   const register = async (formData) => {
-    const response = await api.post("/auth/register", formData);
+    const response = await axios.post(
+      `${API_BASE_URL}/auth/register`,
+      formData
+    );
+
     return response.data;
   };
 
   const login = async (email, password) => {
-    const response = await api.post("/auth/login", {
-      email,
-      password,
-    });
+    const response = await axios.post(
+      `${API_BASE_URL}/auth/login`,
+      {
+        email,
+        password,
+      }
+    );
 
-    const { token, user: loggedInUser } = response.data;
+    const {
+      token,
+      user: loggedInUser,
+    } = response.data;
 
     localStorage.setItem("token", token);
+
     localStorage.setItem(
       "user",
       JSON.stringify(loggedInUser)
@@ -69,7 +83,8 @@ export function AuthProvider({ children }) {
   };
 
   const isAuthenticated =
-    Boolean(user) && Boolean(localStorage.getItem("token"));
+    Boolean(user) &&
+    Boolean(localStorage.getItem("token"));
 
   return (
     <AuthContext.Provider

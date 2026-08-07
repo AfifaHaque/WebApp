@@ -20,6 +20,8 @@ database = client[DATABASE_NAME]
 
 users_collection = database["users"]
 tasks_collection = database["tasks"]
+schedules_collection = database["schedules"]
+materials_collection = database["materials"]
 
 
 def check_database_connection() -> bool:

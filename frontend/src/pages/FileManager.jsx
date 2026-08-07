@@ -1,4 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
+
+const API_URL =
+  `${import.meta.env.VITE_API_URL}/api/materials`;
 
 function FileManager() {
   const [materials, setMaterials] = useState([]);
@@ -10,6 +14,37 @@ function FileManager() {
     description: "",
   });
 
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("token");
+
+    return {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+  };
+
+  const fetchMaterials = async () => {
+    try {
+      const response = await axios.get(
+        API_URL,
+        getAuthHeader()
+      );
+
+      setMaterials(response.data);
+    } catch (error) {
+      console.error("Load materials error:", error);
+
+      if (error.response?.status === 401) {
+        alert("Your login token is missing or expired.");
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchMaterials();
+  }, []);
+
   const handleChange = (event) => {
     const { name, value } = event.target;
 
@@ -19,7 +54,7 @@ function FileManager() {
     }));
   };
 
-  const handleAddMaterial = (event) => {
+  const handleAddMaterial = async (event) => {
     event.preventDefault();
 
     if (!formData.title || !formData.course) {
@@ -27,30 +62,47 @@ function FileManager() {
       return;
     }
 
-    const newMaterial = {
-      id: Date.now(),
-      ...formData,
-    };
+    try {
+      await axios.post(
+        API_URL,
+        formData,
+        getAuthHeader()
+      );
 
-    setMaterials((previousMaterials) => [
-      ...previousMaterials,
-      newMaterial,
-    ]);
+      setFormData({
+        title: "",
+        course: "",
+        url: "",
+        description: "",
+      });
 
-    setFormData({
-      title: "",
-      course: "",
-      url: "",
-      description: "",
-    });
+      await fetchMaterials();
+    } catch (error) {
+      console.error("Add material error:", error);
+      alert("Failed to add material.");
+    }
   };
 
-  const handleDeleteMaterial = (materialId) => {
-    setMaterials((previousMaterials) =>
-      previousMaterials.filter(
-        (material) => material.id !== materialId
-      )
+  const handleDeleteMaterial = async (materialId) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this material?"
     );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await axios.delete(
+        `${API_URL}/${materialId}`,
+        getAuthHeader()
+      );
+
+      await fetchMaterials();
+    } catch (error) {
+      console.error("Delete material error:", error);
+      alert("Failed to delete material.");
+    }
   };
 
   return (
@@ -102,7 +154,9 @@ function FileManager() {
             onChange={handleChange}
           />
 
-          <button type="submit">Add Material</button>
+          <button type="submit">
+            Add Material
+          </button>
         </form>
       </section>
 
@@ -116,14 +170,16 @@ function FileManager() {
             {materials.map((material) => (
               <div
                 className="task-item"
-                key={material.id}
+                key={material._id || material.id}
               >
                 <div>
                   <h3>{material.title}</h3>
                   <p>{material.course}</p>
 
                   {material.description && (
-                    <small>{material.description}</small>
+                    <small>
+                      {material.description}
+                    </small>
                   )}
 
                   {material.url && (
@@ -142,7 +198,9 @@ function FileManager() {
                 <button
                   className="delete-btn"
                   onClick={() =>
-                    handleDeleteMaterial(material.id)
+                    handleDeleteMaterial(
+                      material._id || material.id
+                    )
                   }
                 >
                   Delete

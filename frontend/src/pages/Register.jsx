@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import axios from "axios";
+
+const REGISTER_URL = "http://127.0.0.1:8000/api/auth/register";
 
 function Register() {
   const navigate = useNavigate();
-  const { register } = useAuth();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -52,7 +53,7 @@ function Register() {
     try {
       setLoading(true);
 
-      await register({
+      await axios.post(REGISTER_URL, {
         name: formData.name,
         email: formData.email,
         password: formData.password,
@@ -60,8 +61,11 @@ function Register() {
       });
 
       alert("Registration successful. Please log in.");
+
       navigate("/login");
     } catch (error) {
+      console.error("Registration error:", error);
+
       setError(
         error.response?.data?.detail ||
           "Registration failed. Please try again."
@@ -74,13 +78,19 @@ function Register() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h2>Create Account</h2>
+        <h1>Create Account</h1>
+
         <p>Register to use the Student Study Planner.</p>
 
-        {error && <div className="auth-error">{error}</div>}
+        {error && (
+          <div className="auth-error">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <label>Name</label>
+
           <input
             type="text"
             name="name"
@@ -90,6 +100,7 @@ function Register() {
           />
 
           <label>Email</label>
+
           <input
             type="email"
             name="email"
@@ -99,6 +110,7 @@ function Register() {
           />
 
           <label>Password</label>
+
           <input
             type="password"
             name="password"
@@ -108,6 +120,7 @@ function Register() {
           />
 
           <label>Confirm Password</label>
+
           <input
             type="password"
             name="confirmPassword"
@@ -116,13 +129,21 @@ function Register() {
             onChange={handleChange}
           />
 
-          <button type="submit" disabled={loading}>
-            {loading ? "Creating account..." : "Register"}
+          <button
+            type="submit"
+            disabled={loading}
+          >
+            {loading
+              ? "Creating account..."
+              : "Register"}
           </button>
         </form>
 
         <p className="auth-switch">
-          Already have an account? <Link to="/login">Login</Link>
+          Already have an account?{" "}
+          <Link to="/login">
+            Login
+          </Link>
         </p>
       </div>
     </div>
