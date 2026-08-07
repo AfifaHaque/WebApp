@@ -7,6 +7,7 @@ from app.routes.task_routes import router as task_router
 from app.routes.schedule_routes import router as schedule_router
 from app.routes.material_routes import router as material_router
 
+
 app = FastAPI(
     title="Student Study Planner API",
     description="FastAPI backend for Student Study Planner",
@@ -22,6 +23,7 @@ app.add_middleware(
         "http://localhost:5174",
         "http://127.0.0.1:5174",
     ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
