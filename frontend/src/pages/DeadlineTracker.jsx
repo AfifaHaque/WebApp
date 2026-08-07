@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
-const API_URL = "http://127.0.0.1:8000/api/tasks";
+const API_URL =
+  `${import.meta.env.VITE_API_URL}/api/tasks`;
 
 function DeadlineTracker() {
   const [tasks, setTasks] = useState([]);

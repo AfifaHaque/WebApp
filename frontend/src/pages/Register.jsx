@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const REGISTER_URL = "http://127.0.0.1:8000/api/auth/register";
+const REGISTER_URL =
+  `${import.meta.env.VITE_API_URL}/api/auth/register`;
 
 function Register() {
   const navigate = useNavigate();
